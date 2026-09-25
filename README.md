@@ -1,6 +1,5 @@
 # Pipeline IGAE — 100% Python
 
-Todo en Python (nada de R, nada de Node/docx-js). Tres archivos:
 
 ## 1. `igae_analysis.py`
 Limpia el CSV crudo de INEGI y calcula todo lo que necesita el reporte:
