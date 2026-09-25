@@ -1,0 +1,300 @@
+{
+  "periodo": "2026-06-01",
+  "periodo_label": "junio de 2026",
+  "prev_periodo_label": "mayo de 2026",
+  "anyo_anterior_label": "junio de 2025",
+  "total": {
+    "nivel": 107.4,
+    "nivel_prev": 108.5,
+    "nivel_anyo_anterior": 104.5,
+    "variacion_mensual_pct": -1.0,
+    "variacion_anual_pct": 2.8,
+    "variacion_acumulada_pct": 1.2,
+    "es_maximo_historico": false,
+    "maximo_historico_valor": 108.5,
+    "maximo_historico_periodo": "2026-05"
+  },
+  "sectores": [
+    {
+      "sector": "Actividades terciarias",
+      "nivel": 110.0,
+      "nivel_anyo_anterior": 106.2,
+      "variacion_anual": 3.6,
+      "variacion_acumulada": 1.7,
+      "contribucion_pp": 2.22
+    },
+    {
+      "sector": "Actividades secundarias",
+      "nivel": 102.6,
+      "nivel_anyo_anterior": 100.9,
+      "variacion_anual": 1.7,
+      "variacion_acumulada": 0.0,
+      "contribucion_pp": 0.58
+    },
+    {
+      "sector": "Actividades primarias",
+      "nivel": 111.3,
+      "nivel_anyo_anterior": 110.7,
+      "variacion_anual": 0.5,
+      "variacion_acumulada": 2.2,
+      "contribucion_pp": 0.02
+    }
+  ],
+  "subsectores": {
+    "top_crecen": [
+      {
+        "sector": "Actividades terciarias",
+        "nombre": "Comercio al por mayor",
+        "variacion_anual_pct": 14.3,
+        "nivel_actual": 116.8,
+        "nivel_anyo_anterior": 102.2
+      },
+      {
+        "sector": "Actividades secundarias",
+        "nombre": "Minería",
+        "variacion_anual_pct": 6.6,
+        "nivel_actual": 90.1,
+        "nivel_anyo_anterior": 84.5
+      },
+      {
+        "sector": "Actividades terciarias",
+        "nombre": "Actividades legislativas, gubernamentales, de impartición de justicia y de organismos internacionales y extraterritoriales",
+        "variacion_anual_pct": 6.5,
+        "nivel_actual": 103.5,
+        "nivel_anyo_anterior": 97.2
+      },
+      {
+        "sector": "Actividades primarias",
+        "nombre": "Cría y explotación de animales",
+        "variacion_anual_pct": 5.3,
+        "nivel_actual": 127.4,
+        "nivel_anyo_anterior": 121.0
+      },
+      {
+        "sector": "Actividades secundarias",
+        "nombre": "Construcción",
+        "variacion_anual_pct": 5.0,
+        "nivel_actual": 102.5,
+        "nivel_anyo_anterior": 97.6
+      }
+    ],
+    "top_caen": [
+      {
+        "sector": "Actividades terciarias",
+        "nombre": "Servicios de alojamiento temporal y de preparación de alimentos y bebidas",
+        "variacion_anual_pct": -3.5,
+        "nivel_actual": 88.8,
+        "nivel_anyo_anterior": 92.1
+      },
+      {
+        "sector": "Actividades primarias",
+        "nombre": "Agricultura",
+        "variacion_anual_pct": -2.0,
+        "nivel_actual": 104.1,
+        "nivel_anyo_anterior": 106.3
+      },
+      {
+        "sector": "Actividades secundarias",
+        "nombre": "Industrias manufactureras",
+        "variacion_anual_pct": 0.1,
+        "nivel_actual": 108.1,
+        "nivel_anyo_anterior": 107.9
+      },
+      {
+        "sector": "Actividades terciarias",
+        "nombre": "Servicios de apoyo a los negocios y manejo de residuos, y servicios de remediación",
+        "variacion_anual_pct": 0.2,
+        "nivel_actual": 28.6,
+        "nivel_anyo_anterior": 28.5
+      },
+      {
+        "sector": "Actividades terciarias",
+        "nombre": "Servicios de esparcimiento culturales y deportivos, y otros servicios recreativos",
+        "variacion_anual_pct": 0.3,
+        "nivel_actual": 108.2,
+        "nivel_anyo_anterior": 107.8
+      }
+    ],
+    "top_contribuyen": [
+      {
+        "nombre": "Comercio al por mayor",
+        "contribucion_pp": 1.43
+      },
+      {
+        "nombre": "Construcción",
+        "contribucion_pp": 0.31
+      },
+      {
+        "nombre": "Actividades legislativas, gubernamentales, de impartición de justicia y de organismos internacionales y extraterritoriales",
+        "contribucion_pp": 0.23
+      },
+      {
+        "nombre": "Minería",
+        "contribucion_pp": 0.23
+      },
+      {
+        "nombre": "Comercio al por menor",
+        "contribucion_pp": 0.22
+      }
+    ],
+    "menor_contribuyen": [
+      {
+        "nombre": "Servicios de alojamiento temporal y de preparación de alimentos y bebidas",
+        "contribucion_pp": -0.08
+      },
+      {
+        "nombre": "Agricultura",
+        "contribucion_pp": -0.05
+      },
+      {
+        "nombre": "Servicios de esparcimiento culturales y deportivos, y otros servicios recreativos",
+        "contribucion_pp": 0.0
+      }
+    ]
+  },
+  "tendencia": {
+    "total_ultimos_meses": [
+      {
+        "periodo_label": "jul-25",
+        "nivel": 105.7,
+        "variacion_anual_pct": -1.1
+      },
+      {
+        "periodo_label": "ago-25",
+        "nivel": 104.8,
+        "variacion_anual_pct": -0.7
+      },
+      {
+        "periodo_label": "sep-25",
+        "nivel": 103.2,
+        "variacion_anual_pct": 0.7
+      },
+      {
+        "periodo_label": "oct-25",
+        "nivel": 107.9,
+        "variacion_anual_pct": 1.7
+      },
+      {
+        "periodo_label": "nov-25",
+        "nivel": 107.8,
+        "variacion_anual_pct": -0.2
+      },
+      {
+        "periodo_label": "dic-25",
+        "nivel": 107.4,
+        "variacion_anual_pct": 3.3
+      },
+      {
+        "periodo_label": "ene-26",
+        "nivel": 101.0,
+        "variacion_anual_pct": -0.4
+      },
+      {
+        "periodo_label": "feb-26",
+        "nivel": 100.1,
+        "variacion_anual_pct": -0.3
+      },
+      {
+        "periodo_label": "mar-26",
+        "nivel": 106.7,
+        "variacion_anual_pct": 1.2
+      },
+      {
+        "periodo_label": "abr-26",
+        "nivel": 106.6,
+        "variacion_anual_pct": 2.5
+      },
+      {
+        "periodo_label": "may-26",
+        "nivel": 108.5,
+        "variacion_anual_pct": 1.1
+      },
+      {
+        "periodo_label": "jun-26",
+        "nivel": 107.4,
+        "variacion_anual_pct": 2.8
+      }
+    ],
+    "sectores_ultimos_meses": [
+      {
+        "periodo_label": "jul-25",
+        "Actividades primarias": 102.5,
+        "Actividades secundarias": 101.6,
+        "Actividades terciarias": 108.2
+      },
+      {
+        "periodo_label": "ago-25",
+        "Actividades primarias": 99.7,
+        "Actividades secundarias": 101.4,
+        "Actividades terciarias": 107.1
+      },
+      {
+        "periodo_label": "sep-25",
+        "Actividades primarias": 88.9,
+        "Actividades secundarias": 99.6,
+        "Actividades terciarias": 106.1
+      },
+      {
+        "periodo_label": "oct-25",
+        "Actividades primarias": 99.9,
+        "Actividades secundarias": 104.8,
+        "Actividades terciarias": 110.1
+      },
+      {
+        "periodo_label": "nov-25",
+        "Actividades primarias": 126.0,
+        "Actividades secundarias": 101.5,
+        "Actividades terciarias": 110.4
+      },
+      {
+        "periodo_label": "dic-25",
+        "Actividades primarias": 148.3,
+        "Actividades secundarias": 98.4,
+        "Actividades terciarias": 110.3
+      },
+      {
+        "periodo_label": "ene-26",
+        "Actividades primarias": 107.0,
+        "Actividades secundarias": 96.7,
+        "Actividades terciarias": 103.0
+      },
+      {
+        "periodo_label": "feb-26",
+        "Actividades primarias": 94.8,
+        "Actividades secundarias": 96.0,
+        "Actividades terciarias": 102.8
+      },
+      {
+        "periodo_label": "mar-26",
+        "Actividades primarias": 96.2,
+        "Actividades secundarias": 102.9,
+        "Actividades terciarias": 109.5
+      },
+      {
+        "periodo_label": "abr-26",
+        "Actividades primarias": 104.6,
+        "Actividades secundarias": 102.6,
+        "Actividades terciarias": 109.0
+      },
+      {
+        "periodo_label": "may-26",
+        "Actividades primarias": 125.7,
+        "Actividades secundarias": 103.8,
+        "Actividades terciarias": 110.3
+      },
+      {
+        "periodo_label": "jun-26",
+        "Actividades primarias": 111.3,
+        "Actividades secundarias": 102.6,
+        "Actividades terciarias": 110.0
+      }
+    ]
+  },
+  "charts": {
+    "historico_total": "output/charts/1_historico_total.png",
+    "barras_actividades": "output/charts/2_barras_actividades.png",
+    "lineas_sectores": "output/charts/3_lineas_sectores.png",
+    "ranking_subsectores": "output/charts/4_ranking_subsectores.png",
+    "contribucion_subsectores": "output/charts/5_contribucion_subsectores.png"
+  }
+}
