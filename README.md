@@ -41,6 +41,6 @@ ficha ilustrada), se le agrega `--con-graficas` y genera también los PNG
 
 ## Siguiente paso
 
-Reviso el formato del Word — si les gusta cómo quedaron las tablas, el
+Reviso el formato del Word si gusta cómo quedaron las tablas, el
 siguiente paso es conectar `--csv` a la API de INEGI (en vez de un archivo
 local) y montar el cron/GitHub Action que llame `run_pipeline.py` cada mes.
