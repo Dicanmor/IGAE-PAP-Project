@@ -1,0 +1,127 @@
+:root {
+  --bg: #f4f6fa;
+  --card: #ffffff;
+  --text: #1c2430;
+  --muted: #667085;
+  --border: #e3e8ef;
+  --blue: #4f81bd;
+  --blue-dark: #1f3b63;
+  --pos: #2e7d32;
+  --neg: #c62828;
+  --grid: #e8ecf2;
+  --chip: #eaf1fb;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1722;
+    --card: #172131;
+    --text: #e6ebf2;
+    --muted: #9aa7b8;
+    --border: #263449;
+    --blue: #7fa7d9;
+    --blue-dark: #0d1a2b;
+    --pos: #66bb6a;
+    --neg: #ef5350;
+    --grid: #263449;
+    --chip: #1f2d44;
+    --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+/* Encabezado */
+.top { background: linear-gradient(135deg, var(--blue-dark), #35598c); color: #fff; }
+.top .wrap { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-top: 22px; }
+.top h1 { margin: 0; font-size: 26px; letter-spacing: .5px; }
+.top .sub { margin: 2px 0 14px; opacity: .85; font-size: 14px; }
+.tabs { display: flex; gap: 4px; }
+.tabs button {
+  appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 600;
+  padding: 10px 18px; border-radius: 10px 10px 0 0;
+  background: rgba(255,255,255,.12); color: #fff;
+}
+.tabs button:hover { background: rgba(255,255,255,.22); }
+.tabs button[aria-selected="true"] { background: var(--bg); color: var(--text); }
+.tabs button:focus-visible { outline: 3px solid #ffd54f; outline-offset: 2px; }
+
+main.wrap { padding-top: 22px; padding-bottom: 36px; }
+[hidden] { display: none !important; }
+
+/* Barra superior del dashboard */
+.toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.toolbar label { display: flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 600; }
+select, .btn, .seg button, input[type=search] {
+  font: inherit; color: var(--text); background: var(--card);
+  border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px;
+}
+select { padding-right: 8px; min-width: 190px; }
+.btn { text-decoration: none; font-weight: 600; background: var(--blue); border-color: var(--blue); color: #fff; cursor: pointer; display: inline-block; }
+.btn:hover { filter: brightness(.95); }
+.btn.sec { background: var(--card); color: var(--blue); }
+:focus-visible { outline: 3px solid #f2a900; outline-offset: 2px; }
+
+/* KPIs */
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+.kpi { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
+.kpi .k-label { color: var(--muted); font-size: 13px; font-weight: 600; }
+.kpi .k-value { font-size: 30px; font-weight: 700; line-height: 1.2; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.kpi .k-note { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.pos { color: var(--pos); } .neg { color: var(--neg); }
+.badge { display: inline-block; font-size: 11.5px; font-weight: 700; background: var(--chip); color: var(--blue); border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
+
+/* Tarjetas / gráficas */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: var(--shadow); margin-bottom: 14px; min-width: 0; }
+.grid2 .card { margin-bottom: 0; }
+.card h2 { margin: 0 0 10px; font-size: 16px; }
+.card h2 small { color: var(--muted); font-weight: 500; }
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.card-head h2 { margin: 0; }
+.chart-box { position: relative; height: 300px; }
+.chart-box.tall { height: 560px; }
+.seg { display: inline-flex; }
+.seg button { border-radius: 0; margin-left: -1px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
+.seg button:first-child { border-radius: 8px 0 0 8px; margin-left: 0; }
+.seg button:last-child { border-radius: 0 8px 8px 0; }
+.seg button[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+/* Tablas */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 700; font-size: 12.5px; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; background: var(--card); }
+th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--text); }
+th[aria-sort="ascending"]::after { content: " ▲"; }
+th[aria-sort="descending"]::after { content: " ▼"; }
+tbody tr:hover td { background: var(--chip); }
+td .cod { color: var(--muted); font-size: 12.5px; margin-right: 6px; }
+.filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; color: var(--muted); }
+
+.hint { color: var(--muted); margin: 0 0 14px; }
+.error { background: #fdecea; color: #7a1c14; border: 1px solid #f5c2bd; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
+footer { color: var(--muted); font-size: 13px; padding: 8px 0 28px; }
+footer a { color: var(--blue); }
+
+@media (max-width: 900px) {
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .grid2 { grid-template-columns: 1fr; }
+  .grid2 .card { margin-bottom: 0; }
+  .chart-box.tall { height: 620px; }
+}
+@media (max-width: 520px) {
+  .wrap { padding: 0 14px; }
+  .kpi .k-value { font-size: 24px; }
+  .top h1 { font-size: 22px; }
+  select { min-width: 0; width: 100%; }
+  #tbl-sub th:nth-child(1), #tbl-sub td:nth-child(1) { display: none; }  /* la actividad se filtra con el selector */
+  .toolbar label { width: 100%; }
+}

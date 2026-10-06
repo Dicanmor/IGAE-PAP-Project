@@ -14,7 +14,7 @@ periodo más reciente con datos.
 Uso:
     python igae_analysis.py --csv ruta/al/csv.csv --outdir output/
 
-Requiere: pandas, matplotlib
+Requiere: pandas (matplotlib solo si se piden las gráficas PNG)
 """
 
 import argparse
@@ -23,13 +23,14 @@ import re
 from pathlib import Path
 
 import pandas as pd
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
+# matplotlib es opcional: solo se necesita si se generan las gráficas PNG
+# (--con-graficas / make_charts). El reporte Word ya no las usa, así que
+# el import se hace perezoso dentro de make_charts en vez de aquí arriba,
+# para que el pipeline no truene si no está instalado.
 
-
+# ----------------------------------------------------------------------------
 # Constantes
+# ----------------------------------------------------------------------------
 
 MONTH_MAP = {
     "Enero": 1, "Febrero": 2, "Marzo": 3, "Abril": 4, "Mayo": 5, "Junio": 6,
@@ -52,19 +53,10 @@ SECTOR_COLORS = {
     "Actividades terciarias": "#377EB8",
 }
 
-plt.rcParams.update({
-    "font.size": 10,
-    "axes.facecolor": "#EBEBEB",
-    "axes.edgecolor": "white",
-    "axes.grid": True,
-    "grid.color": "white",
-    "grid.linewidth": 1,
-    "axes.axisbelow": True,
-    "figure.facecolor": "white",
-})
 
-
-# Limpieza: CSV crudo (ancho, formato INEGI) -> long format tidy
+# ----------------------------------------------------------------------------
+# 1. Limpieza: CSV crudo (ancho, formato INEGI) -> long format tidy
+# ----------------------------------------------------------------------------
 
 def load_igae(csv_path: str) -> pd.DataFrame:
     """
@@ -109,7 +101,9 @@ def latest_period(long_df: pd.DataFrame) -> pd.Timestamp:
     return long_df.loc[mask, "periodo"].max()
 
 
-# Resumen ejecutivo
+# ----------------------------------------------------------------------------
+# 2. Resumen ejecutivo: los números que va a usar la ficha
+# ----------------------------------------------------------------------------
 
 def _short_name(nombre: str, max_len: int = 32) -> str:
     """Nombre corto para etiquetas de ejes (el nombre completo se conserva en el JSON/tablas)."""
@@ -242,6 +236,7 @@ def build_period_summary(long_df: pd.DataFrame, periodo: pd.Timestamp = None) ->
             "menor_contribuyen": [{"nombre": r["nombre"], "contribucion_pp": round(r["contribucion_pp"], 2)} for r in min_contrib],
         },
         "tendencia": tendencia,
+        "subsectores_detalle": build_subsector_detail(long_df, periodo),
     }
 
 
@@ -284,16 +279,146 @@ def build_recent_trend(long_df: pd.DataFrame, periodo: pd.Timestamp, n_meses: in
     return {"total_ultimos_meses": total_rows, "sectores_ultimos_meses": sector_rows}
 
 
+# ----------------------------------------------------------------------------
+# 2b. Detalle por subsector (tabla completa) y datos para el dashboard
+# ----------------------------------------------------------------------------
 
-# Gráficas
+SECTOR_CORTO = {
+    "Actividades primarias": "Primarias",
+    "Actividades secundarias": "Secundarias",
+    "Actividades terciarias": "Terciarias",
+}
+
+
+def _split_subsector(raw: str):
+    """'31-33---Industrias manufactureras' -> ('31-33', 'Industrias manufactureras')"""
+    codigo, _, nombre = raw.partition("---")
+    return codigo.strip(), (nombre.strip() or raw)
+
+
+def _num(x, nd):
+    """float redondeado, o None si es None/NaN."""
+    if x is None or pd.isna(x):
+        return None
+    return round(float(x), nd)
+
+
+def _val(long_df, metric, sector, subsector, periodo):
+    r = _get(long_df, metric, sector, subsector, periodo)
+    return float(r["valor"].iloc[0]) if len(r) else None
+
+
+def _subsectores_por_actividad(long_df) -> dict:
+    """{actividad: [subsector_raw, ...]} en el orden del catálogo de INEGI (por código)."""
+    meta = long_df.loc[long_df["subsector"].notna(), ["sector", "subsector"]].drop_duplicates()
+    return {s: list(meta.loc[meta["sector"] == s, "subsector"]) for s in SECTORES_PRINCIPALES}
+
+
+def build_subsector_detail(long_df: pd.DataFrame, periodo: pd.Timestamp) -> list:
+    """
+    Para cada gran actividad (primarias / secundarias / terciarias): su fila total y una
+    fila por subsector con variación anual, variación acumulada y contribución (pp).
+    Los subsectores van en orden de catálogo (por código) para que el reporte sea
+    comparable de un mes a otro.
+    """
+    out = []
+    for sector, raws in _subsectores_por_actividad(long_df).items():
+        def fila(raw):
+            return {
+                "variacion_anual_pct": _num(_val(long_df, METRIC_VAR_ANUAL, sector, raw, periodo), 1),
+                "variacion_acumulada_pct": _num(_val(long_df, METRIC_VAR_ANUAL_ACUM, sector, raw, periodo), 1),
+                "contribucion_pp": _num(_val(long_df, METRIC_CONTRIB, sector, raw, periodo), 2),
+            }
+        subs = []
+        for raw in raws:
+            codigo, nombre = _split_subsector(raw)
+            subs.append({"codigo": codigo, "nombre": nombre, **fila(raw)})
+        out.append({"sector": sector, "total": fila(None), "subsectores": subs})
+    return out
+
+
+def _lista(serie: pd.Series, nd: int) -> list:
+    return [None if pd.isna(v) else round(float(v), nd) for v in serie.values]
+
+
+def export_dashboard_data(long_df: pd.DataFrame) -> dict:
+    """
+    Toda la historia (Total, 3 actividades y todos los subsectores) en un JSON compacto
+    para el dashboard: el navegador calcula cualquier mes sin pedir nada más al servidor.
+    """
+    mask_tot = (long_df["metric"] == METRIC_VALOR) & (long_df["sector"] == "Total") & long_df["subsector"].isna()
+    periodos = pd.date_range(long_df.loc[mask_tot, "periodo"].min(), long_df.loc[mask_tot, "periodo"].max(), freq="MS")
+
+    df = long_df.assign(subsector=long_df["subsector"].fillna(""))
+    pv = df.pivot_table(index=["sector", "subsector", "periodo"], columns="metric", values="valor", aggfunc="first")
+
+    def serie(id_, tipo, nombre, codigo, actividad, sector, subsector):
+        d = pv.xs((sector, subsector), level=["sector", "subsector"]).reindex(periodos)
+        col = lambda m: d[m] if m in d.columns else pd.Series([float("nan")] * len(d), index=d.index)
+        valor = col(METRIC_VALOR)
+        return {
+            "id": id_, "tipo": tipo, "nombre": nombre, "codigo": codigo, "actividad": actividad,
+            # 4 decimales a propósito: el navegador redondea al mostrar, y si el JSON ya viniera
+            # redondeado a 2 habría doble redondeo (p. ej. 107.4496 -> 107.45 -> "107.5" en vez de "107.4")
+            "valor": _lista(valor, 4),
+            "var_mensual": _lista(valor.pct_change(fill_method=None) * 100, 4),
+            "var_anual": _lista(col(METRIC_VAR_ANUAL), 4),
+            "var_acum": _lista(col(METRIC_VAR_ANUAL_ACUM), 4),
+            "contrib": _lista(col(METRIC_CONTRIB), 4),
+        }
+
+    series = [serie("total", "total", "IGAE Total", None, None, "Total", "")]
+    for sector, raws in _subsectores_por_actividad(long_df).items():
+        corto = SECTOR_CORTO[sector]
+        series.append(serie(corto.lower(), "actividad", sector, None, corto, sector, ""))
+        for raw in raws:
+            codigo, nombre = _split_subsector(raw)
+            series.append(serie("s" + codigo, "subsector", nombre, codigo, corto, sector, raw))
+
+    return {"periodos": [p.strftime("%Y-%m") for p in periodos], "series": series}
+
+
+def json_safe(obj):
+    """Reemplaza NaN/inf por None (el JSON estándar no los admite y el navegador truena)."""
+    if isinstance(obj, float):
+        return obj if obj == obj and obj not in (float("inf"), float("-inf")) else None
+    if isinstance(obj, dict):
+        return {k: json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [json_safe(v) for v in obj]
+    return obj
+
+
+# ----------------------------------------------------------------------------
+# 3. Gráficas
+# ----------------------------------------------------------------------------
 
 def make_charts(long_df: pd.DataFrame, summary: dict, outdir: Path):
+    """Genera las gráficas PNG (opcional — solo para --con-graficas / la ficha ilustrada).
+    Importa matplotlib de forma perezosa para que el resto del pipeline
+    (el reporte Word, que ya no usa gráficas) no dependa de tenerlo instalado.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    plt.rcParams.update({
+        "font.size": 10,
+        "axes.facecolor": "#EBEBEB",
+        "axes.edgecolor": "white",
+        "axes.grid": True,
+        "grid.color": "white",
+        "grid.linewidth": 1,
+        "axes.axisbelow": True,
+        "figure.facecolor": "white",
+    })
+
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
     total = _get(long_df, METRIC_VALOR, "Total", None).sort_values("periodo")
 
-    # Histórico del Total
+    # 1. Histórico del Total
     fig, ax = plt.subplots(figsize=(7.2, 3.4), dpi=150)
     ax.plot(total["periodo"], total["valor"], color="darkblue", linewidth=1)
     ax.set_xlabel("Periodo")
@@ -304,7 +429,7 @@ def make_charts(long_df: pd.DataFrame, summary: dict, outdir: Path):
     fig.savefig(outdir / "1_historico_total.png")
     plt.close(fig)
 
-    # Barras: nivel por gran actividad (periodo actual)
+    # 2. Barras: nivel por gran actividad (periodo actual)
     sect_df = pd.DataFrame(summary["sectores"]).sort_values("nivel")
     fig, ax = plt.subplots(figsize=(7.0, 2.8), dpi=150)
     colors = [SET2[i % len(SET2)] for i in range(len(sect_df))]
@@ -382,7 +507,9 @@ def make_charts(long_df: pd.DataFrame, summary: dict, outdir: Path):
     }
 
 
-# CLI
+# ----------------------------------------------------------------------------
+# 4. CLI
+# ----------------------------------------------------------------------------
 
 def main():
     ap = argparse.ArgumentParser(description="Limpieza + análisis del IGAE (INEGI)")
@@ -395,7 +522,8 @@ def main():
     long_df = load_igae(args.csv)
 
     periodo = pd.Timestamp(args.periodo + "-01") if args.periodo else None
-    summary = build_period_summary(long_df, periodo)
+    summary = json_safe(build_period_summary(long_df, periodo))
+    outdir.mkdir(parents=True, exist_ok=True)
     chart_paths = make_charts(long_df, summary, outdir / "charts")
     summary["charts"] = chart_paths
 

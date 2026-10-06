@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IGAE · Dashboard y reportes</title>
+  <meta name="description" content="Dashboard del Índice Global de la Actividad Económica (IGAE) y descarga de reportes mensuales.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <div>
+        <h1>IGAE</h1>
+        <p class="sub">Índice Global de la Actividad Económica · base 2018=100 · Fuente: INEGI</p>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Secciones">
+        <button role="tab" id="tab-dashboard" aria-controls="panel-dashboard" aria-selected="true">Dashboard</button>
+        <button role="tab" id="tab-reportes" aria-controls="panel-reportes" aria-selected="false">Reportes</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="error" class="error" hidden></div>
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <section id="panel-dashboard" role="tabpanel" aria-labelledby="tab-dashboard">
+      <div class="toolbar">
+        <label>Mes
+          <select id="sel-mes" aria-label="Mes a consultar"></select>
+        </label>
+        <a id="btn-reporte" class="btn" href="#" hidden></a>
+      </div>
+
+      <div class="kpis" id="kpis" aria-live="polite"></div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-head">
+            <h2>Evolución del índice total</h2>
+            <div class="seg" id="rango" role="group" aria-label="Rango de la gráfica">
+              <button data-m="24" aria-pressed="false">2 años</button>
+              <button data-m="60" aria-pressed="true">5 años</button>
+              <button data-m="120" aria-pressed="false">10 años</button>
+              <button data-m="0" aria-pressed="false">Todo</button>
+            </div>
+          </div>
+          <div class="chart-box"><canvas id="ch-total" role="img" aria-label="Evolución del IGAE total"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Por gran actividad</h2></div>
+          <div class="chart-box"><canvas id="ch-act" role="img" aria-label="Evolución del IGAE por gran actividad"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Contribución por subsector <small>(puntos porcentuales a la variación anual del IGAE)</small></h2>
+        <div class="chart-box tall"><canvas id="ch-contrib" role="img" aria-label="Contribución de cada subsector a la variación anual"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>Detalle por subsector</h2>
+        <div class="filters">
+          <label>Actividad
+            <select id="f-act" aria-label="Filtrar por actividad">
+              <option value="">Todas</option>
+              <option>Primarias</option>
+              <option>Secundarias</option>
+              <option>Terciarias</option>
+            </select>
+          </label>
+          <span>Clic en un encabezado para ordenar.</span>
+        </div>
+        <div class="table-wrap">
+          <table id="tbl-sub">
+            <thead>
+              <tr>
+                <th class="sortable" data-k="actividad">Actividad</th>
+                <th class="sortable" data-k="nombre">Subsector</th>
+                <th class="sortable num" data-k="var_anual">Var. anual</th>
+                <th class="sortable num" data-k="var_acum">Var. acumulada</th>
+                <th class="sortable num" data-k="contrib">Contrib. (pp)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== REPORTES ===================== -->
+    <section id="panel-reportes" role="tabpanel" aria-labelledby="tab-reportes" hidden>
+      <div class="card">
+        <h2>Reportes mensuales (Word)</h2>
+        <p class="hint">Se generan automáticamente cuando INEGI publica datos nuevos. Elige el mes y descárgalo.</p>
+        <div class="table-wrap">
+          <table id="tbl-rep">
+            <thead><tr><th>Mes</th><th>Archivo</th><th class="num">Tamaño</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer id="pie"></footer>
+  </main>
+
+  <script src="vendor/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

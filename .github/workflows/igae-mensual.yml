@@ -1,0 +1,85 @@
+name: IGAE mensual
+
+# Qué hace: baja el CSV del IGAE de INEGI cuando sale un mes nuevo, genera el reporte Word,
+# reconstruye el dashboard (docs/) y lo guarda en el repositorio. GitHub Pages publica docs/.
+
+on:
+  schedule:
+    # Todos los días a las 15:00 UTC (9:00 en Guadalajara) del 18 al 31 y del 1 al 3 de cada mes:
+    # INEGI publica el IGAE ~53 días después de cerrar el mes, por lo general entre el 20 y el 25.
+    # Si no hay nada nuevo, la corrida termina en segundos y no hace commit.
+    - cron: '0 15 1-3,18-31 * *'
+  workflow_dispatch:           # botón "Run workflow" en la pestaña Actions
+    inputs:
+      meses_atras:
+        description: 'Cuántos meses de reportes mantener (24 = últimos 2 años)'
+        required: false
+        default: '24'
+      regenerar_todo:
+        description: 'Regenerar TODOS los reportes (usa los datos más recientes de INEGI)'
+        type: boolean
+        required: false
+        default: false
+      url_csv:
+        description: 'URL exacta del .zip/.csv de INEGI (opcional; si se llena, omite la búsqueda automática)'
+        required: false
+        default: ''
+  push:
+    paths:
+      - 'data/*.csv'           # si subes un CSV a mano, también se regenera todo
+
+permissions:
+  contents: write              # para que el bot pueda hacer commit de docs/ y data/
+
+concurrency:
+  group: igae-pipeline         # nunca dos corridas a la vez (evita conflictos al hacer push)
+  cancel-in-progress: false
+
+jobs:
+  generar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Descargar el CSV de INEGI (si ya salió el mes nuevo)
+        env:
+          IGAE_URL_TEMPLATE: ${{ vars.IGAE_URL_TEMPLATE }}
+          URL_CSV: ${{ inputs.url_csv }}
+        run: |
+          if [ -n "$URL_CSV" ]; then
+            python fetch_inegi.py --salida data --url "$URL_CSV"
+          else
+            python fetch_inegi.py --salida data
+          fi
+
+      - name: Generar reportes y dashboard
+        id: pipeline
+        env:
+          MESES_ATRAS: ${{ inputs.meses_atras || '24' }}
+          REGENERAR: ${{ inputs.regenerar_todo }}
+        run: |
+          ARGS="--meses-atras $MESES_ATRAS"
+          if [ "$REGENERAR" = "true" ]; then ARGS="$ARGS --regenerar-todo"; fi
+          python run_pipeline.py $ARGS
+
+      - name: Guardar cambios en el repositorio
+        run: |
+          git config user.name  "igae-bot"
+          git config user.email "igae-bot@users.noreply.github.com"
+          git add data docs
+          if git diff --cached --quiet; then
+            echo "Sin cambios: no hay datos nuevos."
+          else
+            git commit -m "IGAE: datos hasta ${{ steps.pipeline.outputs.periodo }}"
+            git pull --rebase origin "${{ github.ref_name }}"   # por si alguien subió algo mientras corría
+            git push
+          fi
