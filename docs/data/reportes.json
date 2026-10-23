@@ -1,5 +1,11 @@
 [
   {
+    "periodo": "2026-08",
+    "label": "agosto de 2026",
+    "archivo": "reportes/Reporte_IGAE_2026-08.docx",
+    "kb": 40
+  },
+  {
     "periodo": "2026-07",
     "label": "julio de 2026",
     "archivo": "reportes/Reporte_IGAE_2026-07.docx",
