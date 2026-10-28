@@ -8,15 +8,15 @@ INEGI publica el IGAE en una URL FIJA (el zip "mensual" se reemplaza cada mes), 
 adivinar rutas por mes: se baja siempre el mismo archivo, se lee de qué periodo es (del propio
 contenido del CSV, no del nombre) y solo se guarda si es nuevo.
 
-Pensado para correr TODOS los días de la ventana de publicación (lo hace el cron de GitHub Actions):
-casi siempre INEGI sigue con el mes anterior y termina en silencio ("sin cambios").
+Con --solo-ventana (lo usa el cron) solo consulta INEGI de 2 días antes a 2 días después de la fecha
+que INEGI publica en su calendario; el resto de los días termina en silencio.
 
 Qué cuenta como error (el workflow falla y GitHub te avisa por correo):
   - La URL ya no existe (HTTP 404/403, o INEGI responde 200 con una página de error).
   - El archivo descargado no es un CSV del IGAE.
   - No hay conexión y no hay ningún CSV guardado en data/.
-Y como aviso (no falla): fallo de red pasajero con datos ya guardados, o que INEGI lleve >60 días
-de retraso con el mes que ya debería estar publicado (INEGI publica ~53 días después de cerrar el mes).
+Y como aviso (no falla): fallo de red pasajero con datos ya guardados, o que INEGI no publique en la fecha de su calendario
+(calendario_igae.json).
 
 Uso:
     python fetch_inegi.py                       # baja a data/
@@ -38,12 +38,11 @@ import zipfile
 from datetime import date, timedelta
 from pathlib import Path
 
+import calendario
+
 # URL fija de los datos abiertos del IGAE (verificada). INEGI reemplaza el contenido cada mes.
 DEFAULT_URL = ("https://www.inegi.org.mx/contenidos/programas/igae/2018/datosabiertos/"
                "conjunto_de_datos_igae_mensual_csv.zip")
-
-DIAS_PUBLICACION = 53   # días naturales entre el cierre del mes y su publicación
-DIAS_ALARMA = 60        # más allá de esto sin mes nuevo se avisa (warning)
 
 FILA_TOTAL = "Índice de volumen físico, base 2018=100|Total"
 MESES = {"enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6, "julio": 7,
@@ -121,14 +120,6 @@ def mes_anterior(ym):
     return (y - 1, 12) if m == 1 else (y, m - 1)
 
 
-def ultimo_mes_esperado(hoy: date):
-    """Último mes (y, m) cuya publicación ya debería haber ocurrido."""
-    ym = (hoy.year, hoy.month)
-    while fin_de_mes(*ym) + timedelta(days=DIAS_PUBLICACION) > hoy:
-        ym = mes_anterior(ym)
-    return ym
-
-
 # ----------------------------------------------------------------------------
 # Descarga
 # ----------------------------------------------------------------------------
@@ -203,6 +194,9 @@ def main() -> int:
     ap.add_argument("--url", default=os.environ.get("IGAE_URL") or DEFAULT_URL,
                     help="URL del .zip/.csv de INEGI (también se lee de la variable IGAE_URL)")
     ap.add_argument("--hoy", default=None, help="Fecha simulada AAAA-MM-DD (para pruebas)")
+    ap.add_argument("--solo-ventana", action="store_true",
+                    help="Solo consulta INEGI dentro de la ventana de la fecha publicada en su calendario "
+                         "(2 días antes a 2 días después; ver calendario_igae.json). Lo usa el cron.")
     args = ap.parse_args()
 
     salida = Path(args.salida)
@@ -216,6 +210,13 @@ def main() -> int:
             elif mt:
                 print(f"[aviso] {f} no es un CSV del IGAE (descarga fallida); se ignora. Puedes borrarlo.")
     tengo = max(existentes) if existentes else None
+    cfg = calendario.cargar()
+    if args.solo_ventana:
+        toca, motivo = calendario.en_ventana(cfg, tengo, hoy)
+        if not toca:
+            print(f"Fuera de la ventana de publicación: {motivo}. No se consulta INEGI.")
+            return 0
+        print(f"Ventana de revisión: {motivo}.")
     print(f"Descargando {args.url}")
     print(f"En {salida}/: {f'{tengo[0]}-{tengo[1]:02d}' if tengo else 'nada'}")
 
@@ -258,11 +259,12 @@ def main() -> int:
         destino.write_bytes(data)
         print(f"{'Descargado (periodo nuevo)' if nuevo else 'Actualizado (INEGI revisó cifras)'}: {destino}")
 
-    # --- aviso de retraso de INEGI ---
-    esperado = ultimo_mes_esperado(hoy)
-    if ym < esperado and hoy > fin_de_mes(*esperado) + timedelta(days=DIAS_ALARMA):
-        aviso("warning", f"INEGI aún no publica {esperado[0]}-{esperado[1]:02d} (el archivo llega a "
-                         f"{ym[0]}-{ym[1]:02d}) y ya pasaron más de {DIAS_ALARMA} días desde que cerró ese mes.")
+    # --- aviso de retraso de INEGI (según su propio calendario) ---
+    sig = calendario.siguiente(cfg, ym)
+    limite = sig["fecha"] + timedelta(days=cfg["despues"])
+    if hoy > limite and (hoy - limite).days < 20:
+        aviso("warning", f"INEGI debía publicar {sig['referencia'][0]}-{sig['referencia'][1]:02d} el "
+                         f"{sig['fecha']:%d/%m/%Y} y el archivo aún llega a {ym[0]}-{ym[1]:02d}.")
     return 0
 
 

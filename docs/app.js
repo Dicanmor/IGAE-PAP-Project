@@ -268,7 +268,116 @@
       esc(estado.ultimo_periodo_label || lbl(D.periodos[last])) + "</strong>" + (fecha ? " · Actualizado el " + esc(fecha) : "") + ".";
   }
 
-  Promise.all([getJSON("data/data.json"), getJSON("data/reportes.json"), getJSON("data/estado.json")])
-    .then(function (r) { D = r[0]; reportes = r[1]; estado = r[2]; init(); })
+
+  /* ---------------- Próxima actualización + suscripción por correo ---------------- */
+  var cal = null, cfg = {};
+  function store(k, v) {   // localStorage puede no existir (modo privado, etc.)
+    try {
+      if (v === undefined) return localStorage.getItem(k);
+      if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v);
+    } catch (e) { /* sin almacenamiento: la página funciona igual */ }
+    return null;
+  }
+  function readSub() { try { return JSON.parse(store("igae_sub") || "null"); } catch (e) { return null; } }
+  function cap1(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function proximaPublicacion() {
+    var u = estado.ultimo_periodo || D.periodos[D.periodos.length - 1];
+    var y = +u.slice(0, 4), m = +u.slice(5) + 1;
+    if (m > 12) { m = 1; y++; }
+    var ref = y + "-" + (m < 10 ? "0" : "") + m, fecha, estim = false, ver = false;
+    var f = cal && cal.fechas ? cal.fechas.filter(function (x) { return x.referencia === ref; })[0] : null;
+    if (f) {
+      var p = f.publica.split("-");
+      fecha = new Date(+p[0], +p[1] - 1, +p[2]); ver = !!f.por_verificar;
+    } else {   // sin calendario: fin del mes de referencia + 53 días (lo mismo que hace el servidor)
+      fecha = new Date(y, m, 0); fecha.setDate(fecha.getDate() + 53); estim = true;
+    }
+    return { ref: ref, fecha: fecha, estimada: estim || ver };
+  }
+  function iso(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+
+  function textoSub(sub) {
+    if (!sub) return "";
+    return sub.estado === "pendiente"
+      ? "Te enviamos un correo a <strong>" + esc(sub.email) + "</strong>. Ábrelo y da clic en «Confirmar» (revisa también spam)."
+      : "Listo: <strong>" + esc(sub.email) + "</strong> ya está registrado. No tienes que volver a ponerlo.";
+  }
+
+  function iniciarAviso() {
+    var dlg = $("dlg-aviso");
+    if (!dlg || typeof dlg.showModal !== "function" || !estado) return;
+    var pub = proximaPublicacion();
+    var hoy = new Date(); hoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    var dias = Math.round((pub.fecha - hoy) / 864e5);
+    var largo = cap1(pub.fecha.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
+    var corto = pub.fecha.getDate() + " " + MESES[pub.fecha.getMonth()].slice(0, 3);
+    var datos = "datos de " + lbl(pub.ref);
+    var det;
+    if (dias > 1) det = "Faltan " + dias + " días. Traerá los " + datos + ".";
+    else if (dias === 1) det = "Es mañana. Traerá los " + datos + ".";
+    else if (dias === 0) det = "INEGI publica hoy los " + datos + ". La página se actualiza sola en cuanto estén disponibles.";
+    else det = "INEGI aún no publica los " + datos + " (se esperaban el " + corto + "). La página se actualiza sola en cuanto aparezcan.";
+    if (pub.estimada) det += " Fecha estimada.";
+
+    $("aviso-fecha").textContent = largo;
+    $("aviso-det").textContent = det;
+    var chip = $("btn-aviso");
+    $("aviso-chip-txt").textContent = (dias < 0 ? "Esperada desde el " : "Próxima actualización: ") + corto;
+    chip.hidden = false;
+    chip.addEventListener("click", function () { dlg.showModal(); });
+
+    // --- suscripción ---
+    var url = (cfg && cfg.suscripcion_url || "").trim();
+    var box = $("aviso-sub"), form = $("form-sub"), msg = $("sub-msg");
+    var sub = readSub();
+    function pintar() {
+      sub = readSub();
+      form.hidden = !!sub;
+      msg.className = "sub-msg" + (sub ? " ok" : "");
+      msg.innerHTML = sub ? textoSub(sub) + ' <button type="button" class="linklike" id="btn-otro">Usar otro correo</button>' : "";
+      var otro = $("btn-otro");
+      if (otro) otro.addEventListener("click", function () { store("igae_sub", null); pintar(); $("inp-email").focus(); });
+    }
+    if (url) {
+      box.hidden = false; pintar();
+      form.addEventListener("submit", function (ev) {
+        ev.preventDefault();
+        var email = $("inp-email").value.trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+          msg.className = "sub-msg err"; msg.textContent = "Revisa el correo: no parece válido."; return;
+        }
+        var btn = $("btn-sub"); btn.disabled = true; msg.className = "sub-msg"; msg.textContent = "Registrando…";
+        fetch(url + (url.indexOf("?") < 0 ? "?" : "&") + "accion=suscribir&email=" + encodeURIComponent(email))
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j && j.ok) { store("igae_sub", JSON.stringify({ email: email, estado: j.estado === "ya" ? "ok" : "pendiente" })); pintar(); }
+            else {
+              msg.className = "sub-msg err";
+              msg.textContent = j && j.error === "correo_invalido" ? "Revisa el correo: no parece válido."
+                : j && j.error === "cuota" ? "Hoy no se pueden mandar más correos de confirmación; intenta mañana."
+                : "No pudimos registrar tu correo. Intenta de nuevo en un rato.";
+            }
+          })
+          .catch(function () { msg.className = "sub-msg err"; msg.textContent = "No pudimos conectar con el servicio de avisos. Intenta de nuevo."; })
+          .then(function () { btn.disabled = false; });
+      });
+    }
+
+    // Se abre solo una vez por fecha de publicación (y nunca a quien ya se registró).
+    var marca = iso(pub.fecha);
+    dlg.addEventListener("close", function () { store("igae_aviso_visto", marca); });
+    dlg.addEventListener("click", function (ev) { if (ev.target === dlg) dlg.close(); });   // clic fuera
+    if (!readSub() && store("igae_aviso_visto") !== marca) dlg.showModal();
+  }
+
+  Promise.all([getJSON("data/data.json"), getJSON("data/reportes.json"), getJSON("data/estado.json"),
+               getJSON("data/calendario.json").catch(function () { return null; }),
+               getJSON("data/config.json").catch(function () { return {}; })])
+    .then(function (r) {
+      D = r[0]; reportes = r[1]; estado = r[2]; cal = r[3]; cfg = r[4] || {};
+      init();
+      try { iniciarAviso(); } catch (e) { if (window.console) console.error(e); }   // nunca debe romper el dashboard
+    })
     .catch(showError);
 })();

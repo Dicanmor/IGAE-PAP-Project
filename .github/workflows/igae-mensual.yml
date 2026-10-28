@@ -5,10 +5,10 @@ name: IGAE mensual
 
 on:
   schedule:
-    # Todos los días a las 15:00 UTC (9:00 en Guadalajara) del 18 al 31 y del 1 al 3 de cada mes:
-    # INEGI publica el IGAE ~53 días después de cerrar el mes, por lo general entre el 20 y el 25.
-    # Si no hay nada nuevo, la corrida termina en segundos y no hace commit.
-    - cron: '0 15 1-3,18-31 * *'
+    # Todos los días 19 al 28 a las 15:00 UTC (9:00 en Guadalajara). INEGI publica el IGAE entre el 22 y
+    # el 25 de cada mes; fetch_inegi.py --solo-ventana solo consulta INEGI de 2 días antes a 2 días
+    # después de la fecha de su calendario (calendario_igae.json). Los demás días termina en segundos.
+    - cron: '0 15 19-28 * *'
   workflow_dispatch:           # botón "Run workflow" en la pestaña Actions
     inputs:
       meses_atras:
@@ -20,8 +20,18 @@ on:
         type: boolean
         required: false
         default: false
+      reenviar_aviso:
+        description: 'Reenviar el correo de aviso del mes más reciente a los suscriptores'
+        type: boolean
+        required: false
+        default: false
+      correo_prueba:
+        description: 'Enviar un correo de prueba (solo al dueño del script de avisos)'
+        type: boolean
+        required: false
+        default: false
       url_csv:
-        description: 'URL exacta del .zip/.csv de INEGI (opcional; si se llena, omite la búsqueda automática)'
+        description: 'URL del .zip/.csv de INEGI (opcional; si se llena, se usa en lugar de la URL por defecto)'
         required: false
         default: ''
   push:
@@ -52,14 +62,14 @@ jobs:
 
       - name: Descargar el CSV de INEGI (si ya salió el mes nuevo)
         env:
-          IGAE_URL_TEMPLATE: ${{ vars.IGAE_URL_TEMPLATE }}
+          IGAE_URL: ${{ vars.IGAE_URL }}      # opcional: solo si INEGI cambia la URL
           URL_CSV: ${{ inputs.url_csv }}
+          EVENTO: ${{ github.event_name }}
         run: |
-          if [ -n "$URL_CSV" ]; then
-            python fetch_inegi.py --salida data --url "$URL_CSV"
-          else
-            python fetch_inegi.py --salida data
-          fi
+          ARGS="--salida data"
+          if [ "$EVENTO" = "schedule" ]; then ARGS="$ARGS --solo-ventana"; fi   # a mano siempre consulta
+          if [ -n "$URL_CSV" ]; then ARGS="$ARGS --url $URL_CSV"; fi
+          python fetch_inegi.py $ARGS
 
       - name: Generar reportes y dashboard
         id: pipeline
@@ -83,3 +93,15 @@ jobs:
             git pull --rebase origin "${{ github.ref_name }}"   # por si alguien subió algo mientras corría
             git push
           fi
+
+      - name: Avisar a los suscriptores (correo con el reporte)
+        if: steps.pipeline.outputs.nuevo_periodo == 'true' || inputs.reenviar_aviso || inputs.correo_prueba
+        env:
+          NOTIFY_TOKEN: ${{ secrets.NOTIFY_TOKEN }}
+          PRUEBA: ${{ inputs.correo_prueba }}
+          REENVIAR: ${{ inputs.reenviar_aviso }}
+        run: |
+          ARGS=""
+          if [ "$PRUEBA" = "true" ]; then ARGS="--prueba"; fi
+          if [ "$REENVIAR" = "true" ]; then ARGS="$ARGS --forzar"; fi
+          python notificar.py $ARGS

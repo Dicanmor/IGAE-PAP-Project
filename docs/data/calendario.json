@@ -1,0 +1,26 @@
+{
+  "fuente": "INEGI, Calendario de difusión de información estadística y geográfica (cal_2026.pdf, cal_2027.pdf), renglón del IGAE",
+  "nota": "Las fechas de 2027 se leyeron de forma indirecta del PDF: verifícalas contra https://www.inegi.org.mx/contenidos/saladeprensa/doc/cal_2027.pdf y quita 'por_verificar' cuando estén confirmadas. Si falta un mes, el código estima publicación = fin de mes de referencia + 53 días.",
+  "ventana_antes": 2,
+  "ventana_despues": 2,
+  "fechas": [
+    {"publica": "2026-01-23", "referencia": "2025-11"},
+    {"publica": "2026-02-23", "referencia": "2025-12"},
+    {"publica": "2026-03-24", "referencia": "2026-01"},
+    {"publica": "2026-04-24", "referencia": "2026-02"},
+    {"publica": "2026-05-22", "referencia": "2026-03"},
+    {"publica": "2026-06-23", "referencia": "2026-04"},
+    {"publica": "2026-07-23", "referencia": "2026-05"},
+    {"publica": "2026-08-24", "referencia": "2026-06"},
+    {"publica": "2026-09-24", "referencia": "2026-07"},
+    {"publica": "2026-10-23", "referencia": "2026-08"},
+    {"publica": "2026-11-23", "referencia": "2026-09"},
+    {"publica": "2026-12-23", "referencia": "2026-10"},
+    {"publica": "2027-01-25", "referencia": "2026-11", "por_verificar": true},
+    {"publica": "2027-02-24", "referencia": "2026-12", "por_verificar": true},
+    {"publica": "2027-03-24", "referencia": "2027-01", "por_verificar": true},
+    {"publica": "2027-04-23", "referencia": "2027-02", "por_verificar": true},
+    {"publica": "2027-05-24", "referencia": "2027-03", "por_verificar": true},
+    {"publica": "2027-06-24", "referencia": "2027-04", "por_verificar": true}
+  ]
+}

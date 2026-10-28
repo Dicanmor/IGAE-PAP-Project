@@ -6,6 +6,8 @@ Arma la carpeta `docs/` que publica GitHub Pages:
   docs/data/data.json       <- toda la historia (Total, 3 actividades, 20 subsectores) para el dashboard
   docs/data/reportes.json   <- lista de reportes .docx disponibles para descargar
   docs/data/estado.json     <- último periodo y fecha de generación
+  docs/data/calendario.json <- fechas de publicación de INEGI (copia de calendario_igae.json)
+  docs/data/config.json     <- URL del servicio de suscripción por correo (copia de config.json)
   docs/reportes/*.docx      <- los reportes (los genera run_pipeline.py)
 
 Es determinista: con los mismos datos produce exactamente los mismos archivos, así que si no hay
@@ -19,7 +21,8 @@ from pathlib import Path
 
 from igae_analysis import export_dashboard_data, json_safe
 
-TEMPLATE_DIR = Path(__file__).parent / "site_template"
+RAIZ = Path(__file__).parent
+TEMPLATE_DIR = RAIZ / "site_template"
 REPORTE_RE = re.compile(r"Reporte_IGAE_(\d{4})-(\d{2})\.docx$")
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
          "septiembre", "octubre", "noviembre", "diciembre"]
@@ -64,3 +67,6 @@ def build_site(long_df, docs_dir: Path, estado: dict):
     _escribir_json(datos / "data.json", export_dashboard_data(long_df), compacto=True)
     _escribir_json(datos / "reportes.json", listar_reportes(docs_dir))
     _escribir_json(datos / "estado.json", estado)
+    for origen, destino in (("calendario_igae.json", "calendario.json"), ("config.json", "config.json")):
+        if (RAIZ / origen).exists():
+            shutil.copyfile(RAIZ / origen, datos / destino)

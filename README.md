@@ -13,7 +13,7 @@ GitHub Actions (cron diario del 18 al 3)
 ## Qué hay en el repo
 | Archivo | Para qué |
 |---|---|
-| `fetch_inegi.py` | Descarga el CSV más reciente de los datos abiertos de INEGI. Avisa con **error** si un mes que ya debería existir no aparece (normalmente = cambió la URL). |
+| `fetch_inegi.py` | Baja el zip de datos abiertos de INEGI (URL fija), lee de qué periodo es y lo guarda en `data/` solo si es nuevo. Falla con **error** si la URL cambió. |
 | `igae_analysis.py` | Limpia el CSV y calcula todo (niveles, variaciones, contribuciones, subsectores). |
 | `build_report_word.py` | Arma el Word con `python-docx`. El texto se calcula con los datos del mes. |
 | `build_site.py` + `site_template/` | Dashboard (HTML + Chart.js) y lista de reportes. |
@@ -23,10 +23,11 @@ GitHub Actions (cron diario del 18 al 3)
 
 ## Puesta en marcha (una sola vez)
 1. **Sube todo al repo** (incluye `data/` y `docs/`; así el sitio ya funciona desde el primer momento).
-2. **Verifica la URL de descarga de INEGI (30 s).** La que trae `fetch_inegi.py` sigue el patrón de INEGI pero **no pude comprobarla** (mi entorno no llega a inegi.org.mx):
-   - Entra a <https://www.inegi.org.mx/programas/igae/2018/> → sección *Datos abiertos* → clic derecho en la descarga CSV → *Copiar dirección de enlace*.
-   - Si es distinta, cambia el año/mes por `{anio}` y `{mes:02d}` y guárdala en **Settings → Secrets and variables → Actions → Variables → `IGAE_URL_TEMPLATE`**. Ejemplo: `https://.../igae{anio}_{mes:02d}_csv.zip`
-   - Sin tocar código. Si no la verificas, la primera alarma te llega sola (ver abajo).
+2. **Prueba la descarga** (la URL de INEGI ya viene configurada en `fetch_inegi.py`; es una URL fija que INEGI reemplaza cada mes):
+   ```powershell
+   py fetch_inegi.py --salida data_prueba
+   ```
+   Si algún día INEGI cambia la URL, el workflow falla con un error claro (y te llega correo). Entonces copia la nueva desde <https://www.inegi.org.mx/programas/igae/2018/> (*Datos abiertos* → clic derecho en la descarga CSV → *Copiar dirección de enlace*) y guárdala en **Settings → Secrets and variables → Actions → Variables → `IGAE_URL`**. Sin tocar código.
 3. **Pages:** Settings → Pages → *Deploy from a branch* → `main` / carpeta `/docs`.
    - Con cuenta gratuita, Pages solo funciona con repo **público** (en privado pide plan de pago).
 4. **Permisos:** Settings → Actions → General → *Workflow permissions* → **Read and write**.
@@ -46,7 +47,8 @@ Opciones útiles de `run_pipeline.py`: `--meses-atras 36` (más historial), `--r
 ## Qué esperar cada mes
 - Días 18–31 y 1–3: el cron revisa. Casi siempre termina en segundos sin hacer nada.
 - El día que sale el mes nuevo: baja el CSV, crea `Reporte_IGAE_AAAA-MM.docx`, actualiza el dashboard y hace commit.
-- **Si algo falla, GitHub te manda correo** ("Run failed"). El caso típico: pasaron >60 días de un mes y no se encontró → cambió la URL.
+- **Si algo falla, GitHub te manda correo** ("Run failed"). El caso típico: INEGI cambió la URL y lo descargado ya no es un CSV del IGAE.
+- Si INEGI se retrasa >60 días con un mes, sale un *warning* (no falla).
 - Subir un CSV a `data/` a mano también dispara todo.
 
 ## Notas importantes
@@ -55,6 +57,21 @@ Opciones útiles de `run_pipeline.py`: `--meses-atras 36` (más historial), `--r
 - **Dashboard:** los datos viajan en `docs/data/data.json` (~360 KB); el navegador calcula cualquier mes sin servidor.
 
 ## Problemas comunes
+- `fetch_inegi.py` dice **"Lo descargado no es un CSV del IGAE"** → INEGI no responde 404 cuando una URL no existe, responde 200 con una página de error. Significa que la URL cambió: actualízala (paso 2). Imprime los primeros caracteres de lo recibido para diagnosticar y no guarda nada basura.
+- Si tienes un CSV roto en `data/` (descarga fallida), `run_pipeline.py` y `fetch_inegi.py` lo **ignoran y avisan**; puedes borrarlo.
 - `python no se reconoce` → usa `py` (o instala Python marcando *Add to PATH*).
 - `No module named 'docx'` → `py -m pip install python-docx` (no `docx`).
 - El dashboard en blanco al abrir `index.html` con doble clic → los navegadores bloquean la lectura local; usa `py -m http.server -d docs 8000`.
+
+
+## Calendario de INEGI, próxima actualización y avisos por correo
+
+- **Ventana de revisión:** `calendario_igae.json` trae las fechas de publicación del IGAE (de INEGI). El cron solo
+  consulta INEGI de **2 días antes a 2 días después** de la fecha publicada (cambia `ventana_antes` / `ventana_despues`
+  si quieres otra). Si INEGI se retrasa, se sigue revisando en cada corrida del 19 al 28 hasta que salga el mes.
+  Cuando INEGI publique su calendario del año siguiente, agrega las fechas en ese archivo (las de 2027 están marcadas
+  `por_verificar`: confírmalas en https://www.inegi.org.mx/contenidos/saladeprensa/doc/cal_2027.pdf).
+  Si falta un mes, se estima fin de mes + 53 días.
+- **Popup de próxima actualización:** la página lo muestra una vez por fecha y queda un botón en el encabezado.
+- **Avisos por correo:** ver `apps_script/README.md` (10 minutos, gratis). Sin configurarlo, la página funciona igual
+  pero sin el formulario de correo. Para probar: Actions → Run workflow → "Enviar correo de prueba".

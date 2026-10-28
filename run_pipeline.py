@@ -87,6 +87,8 @@ def main() -> int:
 
     estado_path = docs_dir / "data" / "estado.json"
     previo = json.loads(estado_path.read_text(encoding="utf-8")) if estado_path.exists() else {}
+    # ¿llegó un mes que el sitio todavía no tenía? (para avisar a los suscriptores una sola vez)
+    nuevo_periodo = bool(previo.get("ultimo_periodo")) and previo["ultimo_periodo"] != latest_ym
 
     rep_dir = docs_dir / "reportes"
     ruta = lambda p: rep_dir / f"Reporte_IGAE_{p.strftime('%Y-%m')}.docx"
@@ -134,7 +136,8 @@ def main() -> int:
     salida = os.environ.get("GITHUB_OUTPUT")
     if salida:
         with open(salida, "a", encoding="utf-8") as fh:
-            fh.write(f"periodo={latest_ym}\ngenerados={len(generados)}\n")
+            fh.write(f"periodo={latest_ym}\ngenerados={len(generados)}\n"
+                     f"nuevo_periodo={'true' if nuevo_periodo else 'false'}\n")
     return 0
 
 
