@@ -320,8 +320,12 @@
     else det = "INEGI aún no publica los " + datos + " (se esperaban el " + corto + "). La página se actualiza sola en cuanto aparezcan.";
     if (pub.estimada) det += " Fecha estimada.";
 
-    $("aviso-fecha").textContent = largo;
-    $("aviso-det").textContent = det;
+    function pintarFecha() {
+      $("aviso-titulo").textContent = "Próxima actualización";
+      $("aviso-fecha").textContent = largo;
+      $("aviso-det").textContent = det;
+    }
+    pintarFecha();
     var chip = $("btn-aviso");
     $("aviso-chip-txt").textContent = (dias < 0 ? "Esperada desde el " : "Próxima actualización: ") + corto;
     chip.hidden = false;
@@ -366,9 +370,36 @@
 
     // Se abre solo una vez por fecha de publicación (y nunca a quien ya se registró).
     var marca = iso(pub.fecha);
-    dlg.addEventListener("close", function () { store("igae_aviso_visto", marca); });
+    dlg.addEventListener("close", function () { store("igae_aviso_visto", marca); setTimeout(pintarFecha, 200); });
     dlg.addEventListener("click", function (ev) { if (ev.target === dlg) dlg.close(); });   // clic fuera
-    if (!readSub() && store("igae_aviso_visto") !== marca) dlg.showModal();
+    // Enlaces de los correos: #confirmar=TOKEN o #baja=TOKEN (la página lo resuelve con el servicio de avisos).
+    var h = /^#(confirmar|baja)=([A-Za-z0-9]{8,64})$/.exec(location.hash);
+    if (h && url) {
+      history.replaceState(null, "", location.pathname + location.search);
+      var baja = h[1] === "baja";
+      $("aviso-titulo").textContent = baja ? "Baja de avisos" : "Confirmación de correo";
+      $("aviso-fecha").textContent = "Procesando…"; $("aviso-det").textContent = "";
+      dlg.showModal();
+      fetch(url + (url.indexOf("?") < 0 ? "?" : "&") + "accion=" + h[1] + "&t=" + h[2] + "&formato=json")
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.ok) {
+            $("aviso-fecha").textContent = baja ? "Listo, te diste de baja" : "Listo, quedaste suscrito";
+            $("aviso-det").textContent = baja ? "Ya no recibirás avisos. Puedes volver a suscribirte cuando quieras."
+              : "Te avisaremos por correo, con el reporte adjunto, cuando INEGI publique datos nuevos.";
+            var cur = readSub();
+            if (baja) store("igae_sub", null); else if (cur) store("igae_sub", JSON.stringify({ email: cur.email, estado: "ok" }));
+            pintar();
+          } else {
+            $("aviso-fecha").textContent = "Enlace no válido";
+            $("aviso-det").textContent = "Este enlace ya no existe o expiró. Puedes suscribirte de nuevo desde aquí.";
+          }
+        })
+        .catch(function () {
+          $("aviso-fecha").textContent = "No pudimos conectar";
+          $("aviso-det").textContent = "Vuelve a abrir el enlace del correo en un rato.";
+        });
+    } else if (!readSub() && store("igae_aviso_visto") !== marca) dlg.showModal();
   }
 
   Promise.all([getJSON("data/data.json"), getJSON("data/reportes.json"), getJSON("data/estado.json"),
